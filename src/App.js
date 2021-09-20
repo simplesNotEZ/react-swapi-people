@@ -4,55 +4,76 @@ import './App.css';
 import People from './components/People';
 
 function App() {
-  const [species, setSpecies] = useState([]);
+  const [speciesAndPeople, setSpeciesAndPeople ] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchSpeciesHandler = async () => {
+  let getSpeciesUrl = 'https://swapi.dev/api/species/';
+  const loadedSpecies = [];
+  let speciesData = {};
+
+  const fetchSpeciesHandler = () => {
     setIsLoading(true);
     setError(null);
-    try {
-      const response = await fetch('https://swapi.dev/api/species/');
-      // console.log('%c GET response: ', 'color: green;', response);
-      if (!response.ok) {
-        throw new Error("Something went wrongo!");
-      }
-      const data = await response.json();
-      // console.log('%c GET data: ', 'color: blue;', data);
-      // console.log('%c GET data.results: ', 'color: red;', data.results);
-
-
-      const loadedSpecies = [];
-
-      for (const singleSpecies in data.results) {
-        // console.log("data.results[singleSpecies]: ", data.results[singleSpecies]);
-        loadedSpecies.push({
-          speciesName: data.results[singleSpecies].name,
-          people: data.results[singleSpecies].people,
-          peopleData: []
+      fetch(getSpeciesUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Something went wrongo!");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          speciesData = data;
+          console.log('%c GET data: ', 'color: green;', data)
+          console.log('%c GET data.next: ', 'color: blue;', data.next);
+          console.log('%c GET data.results: ', 'color: red;', data.results);
+          for (const singleSpecies in data.results) {
+            // console.log("data.results[singleSpecies]: ", data.results[singleSpecies]);
+            loadedSpecies.push({
+              speciesName: data.results[singleSpecies].name,
+              people: data.results[singleSpecies].people,
+              peopleData: []
+            });
+            console.log('%c people: ', 'color: green;', data.results[singleSpecies].people);
+              for (const person in data.results[singleSpecies].people) {
+                console.log('%c person: ', 'color: red;', data.results[singleSpecies].people[person]);
+                fetch(data.results[singleSpecies].people[person])
+                  .then((response) => {
+                    // console.log("%c person response: ", "color: purple;", response);
+                    return response.json();
+                  })
+                  .then((personData) => {
+                    // console.log('%c personData: ', 'color: purple;', personData);
+                    loadedSpecies[singleSpecies].peopleData.push(personData);
+                    console.log('%c loadedSpecies[singleSpecies]: ', 'color: green;', loadedSpecies[singleSpecies]);
+                    // console.log('%c speciesData: ', 'color: purple;', speciesData);
+                    // if (speciesData.next) {
+                    //   getSpeciesUrl = speciesData.next;
+                    //   fetchSpeciesHandler();
+                    // } else {
+                    //   console.log('%c FINAL loadedSpecies: ', 'color: purple;', loadedSpecies);
+                    //   return;
+                    // }
+                  });
+              }
+          console.log("%c loadedSpecies AFTER for in: ", 'color: brown;', loadedSpecies);
+          setSpeciesAndPeople(loadedSpecies);
+          }
         });
-        // console.log("%c loadedSpecies: ", 'color: fuchsia;', loadedSpecies);
-        // console.log("%c loadedSpecies AFTER for in: ", 'color: brown;', loadedSpecies);
-        
-      };
 
-      // console.log('%c loadedSpecies: ', 'color: green;', loadedSpecies);
       
-      for (const peoplesObj in loadedSpecies) {
-        // console.log('%c people array: ', 'color: green;', data.results[singleSpecies].people);
-        // console.log('%c loadedSpecies: ', 'color: green;', loadedSpecies[peoplesObj].people);
-        for (const person in loadedSpecies[peoplesObj].people) {
-          // console.log('%c person: ', 'color: green;', loadedSpecies[peoplesObj].people[person]);
-          const personResponse = await fetch (data.results[peoplesObj].people[person]);
-          const personData = await personResponse.json();
-          // console.log('%c personData: ', 'color: purple;', personData);
-          loadedSpecies[peoplesObj].peopleData.push(personData);
-          // console.log('%c loadedSpecies[peoplesObj].peopleData: ', 'color: green;', loadedSpecies[peoplesObj].peopleData);
-        }
-      }
+      
 
-      console.log('%c FINAL loadedSpecies: ', 'color: green;', loadedSpecies);
+      // console.log('%c PRE-RECURSION loadedSpecies: ', 'color: green;', loadedSpecies);
 
+
+      // if (data.next) {
+      //   getSpeciesUrl = data.next;
+      //   fetchSpeciesHandler();
+      // } else {
+      //   console.log('%c FINAL loadedSpecies: ', 'color: purple;', loadedSpecies);
+      //   return;
+      // }
 
       // for (const person in loadedSpecies) {
         // console.log('%c people array: ', 'color: green;', loadedSpecies[person].people);
@@ -67,11 +88,6 @@ function App() {
       // //     openingText: data[key].openingText
       // //   });
       // };
-
-      
-    } finally {
-      return;
-    }
   };
 
   useEffect(() => {
@@ -81,7 +97,7 @@ function App() {
 
   return (
     <div className="App">
-      <People />
+      <People people={speciesAndPeople} />
       {/* <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
